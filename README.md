@@ -9,6 +9,10 @@ Control_system/
 |-- docs/
 |   |-- Controls_Report.pdf
 |   `-- Microsoft Word - ES245-course-project - part-2 (1).docx - ES 245 Course Project Part 2.pdf
+|-- data/
+|   `-- task5_chirp_runs.csv
+|-- matlab/
+|   `-- task5_system_identification.m
 |-- sketches/
 |   |-- P_controller/
 |   |   `-- P_controller.ino
@@ -56,3 +60,10 @@ Test with the mechanism secured and clear of obstructions. Tune the gains, setpo
 
 - `docs/Controls_Report.pdf`
 - `docs/Microsoft Word - ES245-course-project - part-2 (1).docx - ES 245 Course Project Part 2.pdf`
+- `docs/ACFrOgAvbZ6x8v3y0SnwPO86s9g6DPjiYUJcrwBi719x13j7mF5pA_YAK4qqyDZjaIeY7BG-Cq3JQ7Zi8BWsvNeQkHcuTYsgUCssrUsknsMKTZbuMppGsbJfsOx9FtlABjFJQRoUH3N45kx-oQueYe2mqecG39zLXQSdlPgoNQ==.pdf` (Task 5 chirp results)
+
+## Task 5: System Identification
+
+The recorded chirp data is in `data/task5_chirp_runs.csv`. In MATLAB with the System Identification Toolbox, run `matlab/task5_system_identification.m`. The script resamples the four clean 20-degree and 25-degree runs at 50 Hz, estimates a two-state model with `n4sid`, and plots its fit, residuals, and Bode response. The two 30-degree runs are kept in the CSV but excluded from fitting because they contain invalid ultrasonic readings (`-1`).
+
+This is an experimental transfer function from servo command angle (degrees) to ultrasonic distance (centimeters). Convert the sensor distance to the project's position coordinate before comparing its sign or gain with the ideal sliding-object model, whose input is beam angle rather than servo angle.
