@@ -73,9 +73,15 @@ for i = 1:num_runs
     u_res = interp1(t_raw, u_raw, t_grid, 'linear', 'extrap');
     y_res = interp1(t_raw, y_raw, t_grid, 'linear', 'extrap');
     
-    % Detrend: Subtract mean to obtain perturbation variables around equilibrium
+    % Moving Average Offset Removal:
+    % 1. Actuator Input: Center around operating point
     u_detrend = detrend(u_res, 'constant');
-    y_detrend = detrend(y_res, 'constant');
+    
+    % 2. Sensor Output: Subtract moving average baseline (window = 2.0s = 100 samples)
+    % This removes the non-linear downhill drift/offset so the signal oscillates symmetrically about 0.
+    movWindow = round(2.0 / Ts); % 100 samples at 50 Hz
+    y_baseline = movmean(y_res, movWindow);
+    y_detrend  = y_res - y_baseline;
     
     % Store iddata object for MATLAB System Identification Toolbox
     id_datasets{i} = iddata(y_detrend, u_detrend, Ts, 'Name', rid);
@@ -90,19 +96,21 @@ for i = 1:num_runs
     time_data{i}.u_detrend = u_detrend;
     time_data{i}.y_detrend = y_detrend;
     
-    % Plot raw runs
+    % Plot zero-centered runs
     subplot(num_runs, 2, 2*i - 1);
-    plot(t_grid, u_res, 'LineWidth', 1.2);
+    plot(t_grid, u_detrend, 'LineWidth', 1.2, 'Color', [0 0.4470 0.7410]);
+    yline(0, '--', 'Color', [0.5 0.5 0.5]);
     grid on;
-    ylabel(sprintf('%s\nServo (deg)', rid), 'FontWeight', 'bold');
-    if i == 1, title('Chirp Actuator Input u(t)', 'FontSize', 11); end
+    ylabel(sprintf('%s\n\\Delta\\theta (deg)', rid), 'FontWeight', 'bold');
+    if i == 1, title('Centered Actuator Input \Delta u(t)', 'FontSize', 11); end
     if i == num_runs, xlabel('Time (s)'); end
     
     subplot(num_runs, 2, 2*i);
-    plot(t_grid, y_res, 'LineWidth', 1.2, 'Color', [0.85 0.33 0.1]);
+    plot(t_grid, y_detrend, 'LineWidth', 1.2, 'Color', [0.85 0.33 0.1]);
+    yline(0, '--', 'Color', [0.5 0.5 0.5]);
     grid on;
-    ylabel('Distance (cm)', 'FontWeight', 'bold');
-    if i == 1, title('Ultrasonic Sensor Output y(t)', 'FontSize', 11); end
+    ylabel('\Delta d (cm)', 'FontWeight', 'bold');
+    if i == 1, title('Moving-Average Centered Distance \Delta y(t)', 'FontSize', 11); end
     if i == num_runs, xlabel('Time (s)'); end
 end
 
@@ -117,11 +125,15 @@ merged_data = merge(id_datasets{1}, id_datasets{2}, id_datasets{3}, id_datasets{
 % (position and velocity states), potentially with actuator/sensor lag.
 % Order nx = 2 captures dominant mechanical dynamics.
 nx = 2;
-opt = n4sidOptions('Focus', 'simulation', 'DisturbanceModel', 'none', 'Display', 'on');
+opt = n4sidOptions('Focus', 'simulation', 'Display', 'on');
 sys_d = n4sid(merged_data, nx, opt);
 
 % Convert discrete-time model to continuous-time
-sys_c = d2c(sys_d, 'zoh');
+try
+    sys_c = d2c(sys_d, 'zoh');
+catch
+    sys_c = d2c(sys_d, 'tustin');
+end
 
 % Extract Continuous-time Transfer Function G(s)
 [num, den] = tfdata(sys_c, 'v');
