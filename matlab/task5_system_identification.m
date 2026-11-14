@@ -215,5 +215,66 @@ grid on;
 title('Pole-Zero Map of Identified System G(s)', 'FontSize', 12, 'FontWeight', 'bold');
 saveas(gcf, fullfile(outputDir, 'task5_pzmap.png'));
 
+%% 8. Step Response Comparison: Identified vs. Ideal Sliding Car Model
+% Ideal physics for sliding car on a beam: double integrator G_ideal(s) = K_ideal / s^2
+% Dynamics: m * x_ddot = m * g * sin(alpha) => x_ddot = g * alpha = g * (d/L) * theta
+% (No rotational inertia factor because the object is a sliding car)
+% For L = 0.40 m, d = 0.04 m, g = 9.81 m/s^2:
+% K_ideal = g * (d/L) * (100 * pi / 180) ~ 1.7121 cm/s^2 per deg
+L_beam  = 0.40;   % Beam length (m)
+d_arm   = 0.04;   % Lever arm length (m)
+g_acc   = 9.81;   % Gravity (m/s^2)
+deg2rad = pi / 180;
+m2cm    = 100;
+
+% Ideal sliding car gain (cm/s^2 per deg):
+K_ideal = g_acc * (d_arm / L_beam) * (m2cm * deg2rad); % ~1.7121 cm/s^2/deg
+G_ideal = tf(K_ideal, [1, 0, 0]);
+
+% Time vector for step evaluation (0 to 3 seconds)
+t_step = 0:0.01:3.0;
+
+% Step response for a 1-degree servo step input (\Delta\theta = 1 deg)
+[y_ident, t_out] = step(G, t_step);
+
+% Match physical direction: if sensor distance decreases when servo tilts up
+sign_dir = sign(dcgain(G));
+if sign_dir == 0, sign_dir = 1; end
+y_ideal_dir = sign_dir * 0.5 * K_ideal * (t_step.^2);
+
+figure('Name', 'Task 5: Step Response Comparison', 'Color', 'w', 'Position', [300, 200, 900, 700]);
+
+% Subplot 1: Zoomed in to millimeters to clearly see the identified model's transient dynamics
+subplot(2, 1, 1);
+plot(t_out, y_ident * 10, 'b-', 'LineWidth', 2.2);
+grid on;
+ylabel('\Delta d (mm)', 'FontWeight', 'bold', 'FontSize', 11);
+title('Identified Plant Step Response (Zoomed to Millimeter Scale to View Transient Dynamics)', ...
+      'FontSize', 11, 'FontWeight', 'bold');
+legend(sprintf('Identified G(s) (Settles at %.3f mm)', y_ident(end)*10), 'Location', 'best');
+
+% Subplot 2: Comparison with the ideal frictionless runaway double-integrator
+subplot(2, 1, 2);
+plot(t_out, y_ident, 'b-', 'LineWidth', 2.0, 'DisplayName', 'Identified Model G(s) (Stabilized)');
+hold on;
+plot(t_step, y_ideal_dir, 'r--', 'LineWidth', 2.0, ...
+     'DisplayName', sprintf('Ideal Sliding Car (Runaway: %+.3f / s^2)', sign_dir * K_ideal));
+grid on;
+xlabel('Time (seconds)', 'FontSize', 11);
+ylabel('Position Deviation \Delta d (cm)', 'FontSize', 11, 'FontWeight', 'bold');
+title('Step Response Comparison: Stabilized Hardware Model vs. Ideal Frictionless Runaway', ...
+      'FontSize', 11, 'FontWeight', 'bold');
+legend('Location', 'best', 'FontSize', 10);
+xlim([0, 3.0]);
+
+saveas(gcf, fullfile(outputDir, 'task5_step_response_comparison.png'));
+
+fprintf('\n-------------------------------------------------------\n');
+fprintf('  STEP RESPONSE & SLIDING CAR MODEL VERIFICATION       \n');
+fprintf('-------------------------------------------------------\n');
+fprintf('Ideal Sliding Car Gain (K_ideal):    %.4f cm/s^2 per deg\n', K_ideal);
+fprintf('Identified Model Numerator (K_ident): %.4f\n', num(end));
+fprintf('Step response comparison saved to task5_step_response_comparison.png\n');
+
 fprintf('\nSystem Identification and Characterization Complete.\n');
 fprintf('Figures saved to matlab/ folder.\n');
