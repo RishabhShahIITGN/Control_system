@@ -61,7 +61,7 @@ The beam is attached to the servo horn via a mechanical linkage. The ultrasonic 
 
 All three MATLAB scripts use the same validated plant transfer function derived in Task 5:
 
-$$G(s) = \frac{-0.6463}{s\,(s + 0.0170)} \quad \left[\frac{\text{cm}}{\text{deg}}\right]$$
+$$G(s) = \frac{-0.6463}{s\(s + 0.0170)} \quad \left[\frac{\text{cm}}{\text{deg}}\right]$$
 
 | Parameter | Symbol | Value | Unit |
 | :--- | :---: | :---: | :--- |
